@@ -1,0 +1,69 @@
+CREATE OR REPLACE PROCEDURE DEVICE_SWITCHING_OPERATIONS_HIST (
+    p_result_cursor OUT SYS_REFCURSOR
+)
+IS
+BEGIN
+    OPEN p_result_cursor FOR
+        SELECT
+            ch1.component_pathname AS "Feeder Name",
+            op.component_alias     AS "Switch Name",
+            ch.component_class,
+            ca1.attribute_value    AS "Device Type",
+            op.consent_system_date AS "Recorded Date",
+            CASE
+                WHEN (LOWER(op.action) LIKE '%off%'  OR LOWER(op.action) LIKE '%open%')  THEN 'OFF'
+                WHEN (LOWER(op.action) LIKE '%on%'   OR LOWER(op.action) LIKE '%close%') THEN 'ON'
+                ELSE op.action
+            END AS "Action Confirmed",
+            op.current_state,
+            ca.attribute_value AS "Installed Date"
+        FROM operations op
+        INNER JOIN action_definitions ad
+            ON ad.action_name = op.action
+        INNER JOIN component_header ch
+            ON ch.component_alias = op.component_alias
+        LEFT JOIN component_attributes ca
+            ON ca.component_id = ch.component_id
+            AND ca.attribute_name = 'Installed Date'
+        INNER JOIN component_header ch1
+            ON ch1.component_id = ch.component_parent_id
+        LEFT JOIN component_attributes ca1
+            ON ca1.component_id = ch.component_id
+            AND ca1.attribute_name = 'Type'
+        WHERE op.current_state = 'Confirmed'
+            AND ch.component_class IN (
+                SELECT component_class_index
+                FROM component_class_defn
+                WHERE component_class_name IN (
+                    'Isolator Standard SubT (NT)',
+                    'Fuse In Combo (Non-Tele)',
+                    'Fused Isolator (Non-Tele)',
+                    'Fused Isolator Tx (Non-Tele)',
+                    'RMU Switch/Isolator',
+                    'Ganged Load Break in Combo (NT)',
+                    'Rotary Isolator Sw SubT FDR (NT)',
+                    'Ganged Load Break Switch (NT)',
+                    'Vacuum Switch (Non-Tele)',
+                    'Gas Switch In Combo (Non-Tele)',
+                    'Gas Switch (Non-Tele)',
+                    'Isolator Standard (Non-Tele)',
+                    'Load Break Isolator (Non-Tele)'
+                )
+            )
+            AND (UPPER(ad.DISPLAYED_VERB) LIKE '%OPEN%' OR UPPER(ad.DISPLAYED_VERB) LIKE '%CLOSE%');
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No matching switch operations found.');
+        IF p_result_cursor%ISOPEN THEN
+            CLOSE p_result_cursor;
+        END IF;
+
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error in DEVICE_SWITCHING_OPERATIONS_HIST: ' || SQLCODE || ' - ' || SQLERRM);
+        IF p_result_cursor%ISOPEN THEN
+            CLOSE p_result_cursor;
+        END IF;
+        RAISE_APPLICATION_ERROR(-20001, 'DEVICE_SWITCHING_OPERATIONS_HIST failed: ' || SQLERRM);
+END DEVICE_SWITCHING_OPERATIONS_HIST;
+/
