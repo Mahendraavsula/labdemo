@@ -1,0 +1,64 @@
+Kubernetes Commonds and help
+
+Kubectl config 
+Kubectl config current-context 
+	Output: outputs the current cluster
+Kubectl config use-context <context-name>"
+		Output: Switches to named cluster
+kubectl get pods 
+Kubectl explain
+Kubectl get pods -o wide 
+	OutPut: C:\Users\Mahendra Avsula\.kube>kubectl get pods -o wide
+			NAME             READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+			httpd-mahendra   1/1     Running   0          20m   10.42.0.50   mahendra   <none>           <none>
+			ngink-mahendra   1/1     Running   0          24m   10.42.0.49   mahendra   <none>           <none>
+
+
+New Yaml creation
+kubectl run nginx-yaml --image=nginx --dry-run=client -o yaml > test_nginx.yml
+
+TO run a pod from file
+	c:\GITHUB\labdemo>kubectl create -f test_nginx.yaml  (creats )
+	or 
+	kubectl apply -f test_nginx.yaml  ( will check the differences in the already running pod and runs it)
+	
+
+Runing shell commands inside a pod
+c:\GITHUB\labdemo>kubectl exec -it nginx-docs -- /bin/bash   # if bash exist 
+root@nginx-docs:/# echo $shell
+
+or 
+c:\GITHUB\labdemo>kubectl exec -it nginx-docs -- /bin/sh # if sh exist
+
+
+Install packages inside the pod
+
+go to back as mention above and then 
+
+apt update
+apt install <name of the package> 
+
+e.g. root@httpd:/usr/local/apache2# apt install tree
+
+root@httpd:/usr/local/apache2# apt install iputils-ping  # for pinging
+
+
+root@httpd:/usr/local/apache2# ping 10.42.0.83
+
+CReate Deployments
+c:\GITHUB\labdemo>kubectl create deploy test --image=httpd --replicas=3
+
+Creating sample deployment file
+kubectl create deploy test --image=httpd --replicas=10 --dry-run=client -o yaml > deploy.yaml
+
+Apply deployment
+kubectl apply -f deploy.yaml
+
+# print the command every minute
+C:\GITHUB\labdemo>watch -n 1 "kubectl getpods"
+
+Use strgey tag for how to deploy meaning rolling update or recreate
+
+
+# for exposing port to browser
+kubectl port-forward pods/mealie-58d548ff48-gxx9f 9000
